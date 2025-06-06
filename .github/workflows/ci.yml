@@ -12,11 +12,12 @@ on:
 
 jobs:
   build-wheels:
+    name: Build & Package Wheels
+    os: [ubuntu-latest, windows-latest, macos-15]
+    runs-on: ubuntu-latest
     strategy:
       matrix:
-        os: [ubuntu-latest, ubuntu-24.04-arm, windows-latest, macos-15]
-        python-version: ["3.9", "3.10", "3.11", "3.12"]
-    runs-on: ${{ matrix.os }}
+        python-version: [ '3.10', '3.11', '3.12' ]
 
     steps:
       - uses: actions/checkout@v4
@@ -32,6 +33,13 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: pip
 
+      - name: Prepare cibuildwheel environment
+        run: |
+          ver="${{ matrix.python-version }}"
+          ver_nodot="${ver//./}"
+          echo "CIBW_BUILD=cp${ver_nodot}-*" >> $GITHUB_ENV
+          echo "CIBW_ARCHS=x86_64 aarch64"    >> $GITHUB_ENV
+          echo "CIBW_ENVIRONMENT_MACOS=MACOSX_DEPLOYMENT_TARGET=15.0" >> $GITHUB_ENV
       - name: Install cibuildwheel
         run: python -m pip install --upgrade cibuildwheel==2.23.3
 
@@ -71,13 +79,6 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
       - uses: softprops/action-gh-release@v1
-        with:
-          files: '**/*.whl'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Create GitHub release and upload wheels
-        uses: softprops/action-gh-release@v1
         with:
           files: '**/*.whl'
         env:
