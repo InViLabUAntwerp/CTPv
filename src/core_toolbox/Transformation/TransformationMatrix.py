@@ -1,19 +1,24 @@
-import numpy as np
-from scipy.spatial.transform import Rotation as R
-import matplotlib.pyplot as plt
-# Define the Arrow3D class
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-from mpl_toolkits.mplot3d.art3d import Poly3DCollection
-import numpy as np
-from matplotlib.patches import FancyArrowPatch
-from mpl_toolkits.mplot3d import proj3d
-
 import os
+import numpy as np
+import open3d as o3d
+import matplotlib.pyplot as plt
+from scipy.spatial.transform import Rotation as R
+# Define the Arrow3D class
+# from mpl_toolkits.mplot3d import Axes3D
+# from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+# from matplotlib.patches import FancyArrowPatch
+# from mpl_toolkits.mplot3d import proj3d
+
 class TransformationMatrix:
+    """
+    A class to represent and manipulate a 4x4 transformation matrix.
+    This class provides methods to handle transformations including translation, rotation, and their combinations.
+    It also supports various ways to set and get the transformation properties such as Euler angles and quaternions.
+    """
     def __init__(self):
         """
         Initialize the transformation matrix as a 4x4 identity matrix.
+        Additional attributes include info and units for metadata and unit specification.
         """
         self.H = np.eye(4)
         self.info = ["default1", "default2"]
@@ -21,12 +26,18 @@ class TransformationMatrix:
 
     @property
     def T(self):
-        """Get the translation vector."""
+        """Get the translation vector from the transformation matrix."""
         return self.H[:3, 3]
 
     @T.setter
     def T(self, t):
-        """Set the translation vector."""
+        """
+        Set the translation vector of the transformation matrix.
+
+        Parameters:
+        t : array-like
+            The translation vector with three elements.
+        """
         t = np.asarray(t).flatten()
         if t.shape[0] == 3:
             self.H[:3, 3] = t
@@ -35,12 +46,18 @@ class TransformationMatrix:
 
     @property
     def R(self):
-        """Get the rotation matrix."""
+        """Get the rotation matrix from the transformation matrix."""
         return self.H[:3, :3]
 
     @R.setter
     def R(self, r):
-        """Set the rotation matrix."""
+        """
+        Set the rotation matrix of the transformation matrix.
+
+        Parameters:
+        r : array-like
+            The 3x3 rotation matrix.
+        """
         r = np.asarray(r)
         if r.shape == (3, 3):
             self.H[:3, :3] = r
@@ -49,39 +66,63 @@ class TransformationMatrix:
 
     @property
     def angles(self):
-        """Get Euler angles in radians (XYZ convention)."""
+        """Get Euler angles in radians (XYZ convention) from the rotation matrix."""
         return R.from_matrix(self.R).as_euler('xyz')
 
     @angles.setter
     def angles(self, angles):
-        """Set Euler angles (in radians) using XYZ convention."""
+        """
+        Set the rotation matrix using Euler angles (in radians) with XYZ convention.
+
+        Parameters:
+        angles : array-like
+            The Euler angles in radians.
+        """
         self.R = R.from_euler('xyz', angles).as_matrix()
 
     @property
     def angles_degree(self):
-        """Get Euler angles in degrees."""
+        """Get Euler angles in degrees from the rotation matrix."""
         return np.degrees(self.angles)
 
     @angles_degree.setter
     def angles_degree(self, angles):
-        """Set Euler angles in degrees."""
+        """
+        Set the rotation matrix using Euler angles in degrees.
+
+        Parameters:
+        angles : array-like
+            The Euler angles in degrees.
+        """
         self.angles = np.radians(angles)
 
     @property
     def quaternion(self):
-        """Get the quaternion representation of the rotation."""
+        """Get the quaternion representation of the rotation matrix."""
         return R.from_matrix(self.R).as_quat()
 
     @quaternion.setter
     def quaternion(self, quat):
-        """Set the rotation matrix using a quaternion."""
+        """
+        Set the rotation matrix using a quaternion.
+
+        Parameters:
+        quat : array-like
+            The quaternion representing the rotation.
+        """
         self.R = R.from_quat(quat).as_matrix()
 
     def transform(self, points):
         """
         Apply the transformation to a set of 3D points.
-        :param points: Nx3 array of points.
-        :return: Transformed Nx3 array.
+
+        Parameters:
+        points : array-like
+            Nx3 array of points to transform.
+
+        Returns:
+        numpy.ndarray
+            Transformed Nx3 array of points.
         """
         points = np.asarray(points)
         if points.ndim == 1 and points.shape[0] == 3:
@@ -98,8 +139,11 @@ class TransformationMatrix:
         return transformed_points[:, :3]  # Remove the homogeneous coordinate
 
     def invert(self):
-        """Invert the transformation matrix."""
-        H_inv= np.linalg.inv(self.H)
+        """
+        Invert the transformation matrix.
+        This method computes the inverse of the transformation matrix and updates the matrix and its info.
+        """
+        H_inv = np.linalg.inv(self.H)
         self.info = self.info[::-1]
         self.H = H_inv
 
@@ -161,7 +205,10 @@ class TransformationMatrix:
     def load_bundler_file(self, filename):
         """
         Load the transformation matrix from a Bundler file, ignoring the first 3 lines.
-        :param filename: Path to the input file.
+
+        Parameters:
+        filename : str
+            Path to the input Bundler file.
         """
         with open(filename, 'r') as f:
             lines = f.readlines()[3:]  # Ignore the first 3 lines
@@ -178,8 +225,11 @@ class TransformationMatrix:
 
     def plot(self, scale=1.0):
         """
-        Plot the transformation as a coordinate frame.
-        Requires matplotlib.
+        Plot the transformation as a coordinate frame using matplotlib.
+
+        Parameters:
+        scale : float, optional
+            The scale of the coordinate frame axes.
         """
         fig = plt.figure()
         ax = fig.add_subplot(111, projection="3d")
@@ -223,10 +273,12 @@ class TransformationMatrix:
     def plot_open3d(self, scale=1.0):
         """
         Plot the transformation as a coordinate frame using Open3D.
-        Requires open3d.
+
+        Parameters:
+        scale : float, optional
+            The scale of the coordinate frame axes.
         """
         # Create the transformation coordinate frame
-        import open3d as o3d
         mesh_frame = o3d.geometry.TriangleMesh.create_coordinate_frame(size=scale, origin=self.T)
         R = self.R
         mesh_frame.rotate(R, center=self.T)
@@ -244,7 +296,11 @@ class TransformationMatrix:
 
     def copy(self):
         """
-        Return a copy of the current instance.
+        Return a copy of the current TransformationMatrix instance.
+
+        Returns:
+        TransformationMatrix
+            A new instance of TransformationMatrix with the same transformation matrix and metadata.
         """
         new_instance = TransformationMatrix()
         new_instance.H = np.copy(self.H)
@@ -253,6 +309,13 @@ class TransformationMatrix:
         return new_instance
 
     def load_from_json(self, filename):
+        """
+        Load the transformation matrix and metadata from a JSON file.
+
+        Parameters:
+        filename : str
+            Path to the JSON file.
+        """
         import json
         with open(filename, 'r') as f:
             data = json.load(f)
@@ -262,6 +325,13 @@ class TransformationMatrix:
         self.units = data['units']
 
     def save_to_json(self, filename):
+        """
+        Save the transformation matrix and metadata to a JSON file.
+
+        Parameters:
+        filename : str
+            Path to the output JSON file.
+        """
         import json
         #make sure the directory exists
         directory = os.path.dirname(filename)
@@ -278,50 +348,34 @@ class TransformationMatrix:
     def __matmul__(self, other):
         """
         Overload the @ operator for transformation chaining.
+
+        Parameters:
+        other : TransformationMatrix
+            Another TransformationMatrix to multiply with.
+
+        Returns:
+        TransformationMatrix
+            The resulting TransformationMatrix from the multiplication.
         """
         if not isinstance(other, TransformationMatrix):
             raise TypeError("Can only multiply with another TransformationMatrix")
 
         result = TransformationMatrix()
         result.H = self.H @ other.H
-        info = [self.info[0], other.info[-1]] # todo, check this
+
+        if not self.info or not other.info:
+            raise ValueError("Info lists should not be empty")
+
+        info = [self.info[0], other.info[-1]]
         result.info = info
         return result
 
     def __repr__(self):
+        """
+        Return a string representation of the TransformationMatrix.
+
+        Returns:
+        str
+            A string representation of the transformation matrix.
+        """
         return f"TransformationMatrix(\n{self.H})"
-
-
-# Example Usage
-if __name__ == "__main__":
-    T1 = TransformationMatrix()
-    T1.T = [0,10,0]
-    T1.angles_degree = [0, 30, 0]
-    #T1.invert()
-    T1.save_bundler_file("test.out")
-    print("Transformation Matrix T1:\n", T1)
-    print("\nTranslation:\n", T1.T)
-    print("\nRotation:\n", T1.R)
-    print("\nEuler Angles (degrees):\n", T1.angles_degree)
-    print("\nQuaternion:\n", T1.quaternion)
-    T1.plot()
-    T1.save_to_json("test.json")
-    T2 = TransformationMatrix()
-    T2.load_from_json("test.json")
-
-
-    T2 = TransformationMatrix()
-    T2.T = [-1, -2, -3]
-    T2.angles_degree = [-30, -45, -60]
-    #plt.ioff()
-
-    T2 = T1.copy()
-
-
-    T2.invert()
-    T2.plot()
-    T2.load_bundler_file("cameras2.out")
-
-    T_combined = T1 @ T2  # Chaining transformations
-
-    print("\nCombined Transformation:\n", T_combined)

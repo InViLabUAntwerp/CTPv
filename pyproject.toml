@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=74.1", "wheel", "numpy", "matplotlib", "scipy", "scikit-learn"]
+requires = ["setuptools>=74.1", "wheel", "numpy", "matplotlib", "scipy", "scikit-learn", "open3d"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -13,6 +13,7 @@ dependencies = [
   "matplotlib",
   "scipy",
   "scikit-learn",
+  "open3d"
 ]
 authors = [
   { name="Rhys Evans & Seppe Sels" },

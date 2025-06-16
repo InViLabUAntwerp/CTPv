@@ -1,0 +1,6 @@
+setuptools
+matplotlib
+numpy
+scikit-learn
+open3d
+scipy

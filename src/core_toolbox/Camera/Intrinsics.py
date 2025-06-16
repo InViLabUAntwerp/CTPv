@@ -1,10 +1,10 @@
 import numpy as np
-import copy
 import os
-
-
+from ..Plucker.Line import Line
 
 class RadialDistortion:
+    """Handles radial distortion parameters for a camera model."""
+
     def __init__(self, k1=0, k2=0, k3=0):
         self.k1 = k1
         self.k2 = k2
@@ -15,7 +15,10 @@ class RadialDistortion:
             raise ValueError("List must contain exactly three elements.")
         self.k1, self.k2, self.k3 = coeffs
 
+
 class IntrinsicMatrix:
+    """Encapsulates intrinsic parameters of a pinhole camera model."""
+
     def __init__(self):
         self.fx = None
         self.fy = None
@@ -27,12 +30,20 @@ class IntrinsicMatrix:
         self.RadialDistortion = RadialDistortion()
         self._MatlabIntrinsics = np.zeros((3, 3))
         self._OpenCVIntrinsics = np.zeros((3, 3))
-        self.pixel_size = None  # Pixel size in mm e.g. 0,0034mm (3.4 um)
-        self.info = None # Additional information (camera id, lens id, ...)
-
+        self.pixel_size = None  # e.g., 0.0034 mm
+        self.info = None  # e.g., camera ID or lens metadata
 
     @property
     def MatlabIntrinsics(self):
+        """
+        generation call method for returning Matlab matrix format of intrinsic parameters of a camera
+        Returns:
+            I = 3x3 matrix
+            [ fx   0   cx  ]
+            [ 0    fy  cy  ]
+            [ 0    0   1   ]
+
+        """
         I = np.zeros((3, 3))
         I[0, 0] = self.fx
         I[1, 1] = self.fy
@@ -43,6 +54,14 @@ class IntrinsicMatrix:
 
     @MatlabIntrinsics.setter
     def MatlabIntrinsics(self, I):
+        """
+        Extraction call method for extracting Matlab matrix format of intrinsic parameters of a camera to local class,
+        parameters are registered to every parameter as per the following structure.
+        I = [ fx   0   cx  ]
+            [ 0    fy  cy  ]
+            [ 0    0   1   ]
+
+        """
         self.fx = I[0, 0]
         self.fy = I[1, 1]
         self.cx = I[2, 0]
@@ -51,6 +70,15 @@ class IntrinsicMatrix:
 
     @property
     def OpenCVIntrinsics(self):
+        """
+        generation call method for returning OpenCV matrix format of intrinsic parameters of a camera
+        Returns:
+            I = 3x3 matrix
+            [ fx   0   cx  ]
+            [ 0    fy  cy  ]
+            [ 0    0   1   ]
+
+        """
         I = np.zeros((3, 3))
         I[0, 0] = self.fx
         I[1, 1] = self.fy
@@ -61,6 +89,14 @@ class IntrinsicMatrix:
 
     @OpenCVIntrinsics.setter
     def OpenCVIntrinsics(self, I):
+        """
+        Extraction call method for extracting OpenCV matrix format of intrinsic parameters of a camera to local class,
+        parameters are registered to every parameter as per the following structure.
+        I = [ fx   0   cx  ]
+            [ 0    fy  cy  ]
+            [ 0    0   1   ]
+
+        """
         self.fx = I[0, 0]
         self.fy = I[1, 1]
         self.cx = I[0, 2]
@@ -69,46 +105,45 @@ class IntrinsicMatrix:
 
     @property
     def focal_length_mm(self):
-        """Get the focal length in millimeters."""
+        """Returns focal length in mm."""
         if self.pixel_size is None:
             raise ValueError('Pixel size not set!')
         return self.fx * self.pixel_size, self.fy * self.pixel_size
 
     @property
     def PerspectiveAngle(self):
+        """Returns horizontal or vertical perspective angle in degrees."""
         if self.width is None:
-            raise ValueError('set width first!')
+            raise ValueError('Set width first.')
 
         aspectRatio = self.width / self.height
         if aspectRatio > 1:
-            return 2 * np.arctan(self.width / (2 * self.fx))*180/np.pi
+            return 2 * np.arctan(self.width / (2 * self.fx)) * 180 / np.pi
         else:
-            return 2 * np.arctan(self.height / (2 * self.fy))*180/np.pi
+            return 2 * np.arctan(self.height / (2 * self.fy)) * 180 / np.pi
 
     @PerspectiveAngle.setter
     def PerspectiveAngle(self, p):
         if self.width is None:
-            raise ValueError('set width first!')
+            raise ValueError('Set width first.')
 
         aspectRatio = self.width / self.height
         if aspectRatio > 1:
             self.fx = (self.width / 2) / np.tan(p / 2)
             self.fy = self.fx
-            self.cx = self.width / 2
-            self.cy = self.height / 2
         else:
             self.fy = (self.height / 2) / np.tan(p / 2)
             self.fx = self.fy
-            self.cx = self.width / 2
-            self.cy = self.height / 2
+
+        self.cx = self.width / 2
+        self.cy = self.height / 2
 
     def CameraParams2Intrinsics(self, CameraParams):
         try:
             self.width = CameraParams.ImageSize[1]
             self.height = CameraParams.ImageSize[0]
         except AttributeError:
-            print('cam not open, set resolution manually!!')
-
+            print('Camera not open, set resolution manually.')
         self.MatlabIntrinsics = CameraParams.IntrinsicMatrix
 
     def Intrinsics2CameraParams(self):
@@ -116,11 +151,12 @@ class IntrinsicMatrix:
             'IntrinsicMatrix': self.MatlabIntrinsics,
             'ImageSize': [self.height, self.width]
         }
-        if self.RadialDistortion is not None:
+        if self.RadialDistortion:
             P['RadialDistortion'] = self.RadialDistortion
         return P
 
     def ScaleIntrinsics(self, Scale):
+        """Scales all intrinsic parameters and image size by a given factor."""
         self.fx *= Scale
         self.fy *= Scale
         self.cx *= Scale
@@ -129,130 +165,74 @@ class IntrinsicMatrix:
         self.height *= Scale
 
     def generate_rays(self):
-
         """
-        Generate rays for every pixel in the image based on the intrinsic matrix.
-
-        Parameters:
-        I : IntrinsicMatrix
-            Camera intrinsic parameters.
-
+        Generate 3D rays from each pixel of the camera sensor.
         Returns:
-        rays : list of Line objects
-            A list of rays originating from sensor points.
+            Line: ray directions from camera origin.
         """
-
-        schaal = 2.0  # Just for visualization purposes 0705 todo: change name, make it a parameter
+        scale = 2.0  # scaling factor for visualization
         x_vals, y_vals = np.meshgrid(np.arange(self.width), np.arange(self.height))
 
         if self.RadialDistortion.k1 == 0:
-            x_vals = (x_vals - self.cx) / self.fx * schaal
-            y_vals = (y_vals - self.cy) / self.fy * schaal
-            z_vals = np.ones_like(x_vals) * schaal
+            x_vals = (x_vals - self.cx) / self.fx * scale
+            y_vals = (y_vals - self.cy) / self.fy * scale
+            z_vals = np.ones_like(x_vals) * scale
         else:
             x_norm = (x_vals - self.cx) / self.fx
             y_norm = (y_vals - self.cy) / self.fy
             r2 = x_norm ** 2 + y_norm ** 2
-            radial_factor = 1 + I.RadialDistortion.k1 * r2 + I.RadialDistortion.k2 * r2 ** 2 + I.RadialDistortion.k3 * r2 ** 3
-            x_vals = x_norm * radial_factor * schaal
-            y_vals = y_norm * radial_factor * schaal
-            z_vals = np.ones_like(x_vals) * schaal
-
+            radial_factor = 1 + self.RadialDistortion.k1 * r2 + self.RadialDistortion.k2 * r2 ** 2 + self.RadialDistortion.k3 * r2 ** 3
+            x_vals = x_norm * radial_factor * scale
+            y_vals = y_norm * radial_factor * scale
+            z_vals = np.ones_like(x_vals) * scale
 
         Ps = np.stack([x_vals, y_vals, z_vals], axis=-1)
         Pf = np.zeros_like(Ps)
-        Pf[..., 2] = 0  # Set Z component to zero
+        Pf[..., 2] = 0  # Sensor plane
 
         directions = Ps - Pf
         rays = Line()
-        rays.Ps = Pf.reshape(Pf.shape[0] * Pf.shape[1], 3)
-        rays.V = directions.reshape(directions.shape[0] * directions.shape[1], 3)
-
+        rays.Ps = Pf.reshape(-1, 3)
+        rays.V = directions.reshape(-1, 3)
 
         return rays
 
     def save_intrinsics_to_json(self, filename):
+        """Serialize camera intrinsics to a JSON file."""
         import json
         directory = os.path.dirname(filename)
         if directory:
             os.makedirs(directory, exist_ok=True)
 
-        intrinsic_matrix = self
         data = {
-            'OpenCVIntrinsics': intrinsic_matrix.OpenCVIntrinsics.tolist(),
+            'OpenCVIntrinsics': self.OpenCVIntrinsics.tolist(),
             'RadialDistortion': {
-                'k1': intrinsic_matrix.RadialDistortion.k1,
-                'k2': intrinsic_matrix.RadialDistortion.k2,
-                'k3': intrinsic_matrix.RadialDistortion.k3
+                'k1': self.RadialDistortion.k1,
+                'k2': self.RadialDistortion.k2,
+                'k3': self.RadialDistortion.k3
             },
-            'width': intrinsic_matrix.width,
-            'height': intrinsic_matrix.height,
-            'pixel_size': intrinsic_matrix.pixel_size,
-            'info': intrinsic_matrix.info
-
+            'width': self.width,
+            'height': self.height,
+            'pixel_size': self.pixel_size,
+            'info': self.info
         }
         with open(filename, 'w') as f:
             json.dump(data, f, indent=4)
 
-    def load_intrinsics_from_json(self,filename):
+    def load_intrinsics_from_json(self, filename):
+        """Load camera intrinsics from a JSON file."""
         import json
         with open(filename, 'r') as f:
             data = json.load(f)
 
-        intrinsic_matrix = self
         self.OpenCVIntrinsics = np.array(data['OpenCVIntrinsics'])
-        intrinsic_matrix.RadialDistortion.set_from_list([
+        self.RadialDistortion.set_from_list([
             data['RadialDistortion']['k1'],
             data['RadialDistortion']['k2'],
             data['RadialDistortion']['k3']
         ])
-        intrinsic_matrix.width = data['width']
-        intrinsic_matrix.height = data['height']
-        intrinsic_matrix.pixel_size = data['pixel_size']
-        intrinsic_matrix.info = data['info']
-
-
-        return intrinsic_matrix
-
-
-if __name__ == "__main__":
-    I = IntrinsicMatrix()
-    I.info = "testCamera"
-    I.fx = 1770
-    I.fy = 1770
-
-    I.width = 1440
-    I.height = 1080
-    I.cx = 685
-    I.cy = 492
-    I.RadialDistortion.set_from_list([-0.5,0.18,0])
-
-    I.save_intrinsics_to_json('test.json')
-    rays = I.generate_rays()
-    I2 = IntrinsicMatrix()
-    I2.load_intrinsics_from_json('test.json')
-    #rays.PlotLine()
-
-    from core_toolbox_python.Transformation.TransformationMatrix import TransformationMatrix
-    H = TransformationMatrix()
-    H.T = [0,0,0]
-    H.angles_degree = [45,0,0]
-    rayst= copy.deepcopy(rays)
-    rayst.TransformLines(H)
-    #rayst.PlotLine()
-    import time
-    start = time.time()
-    p,d = intersection_between_2_lines(rays,rayst)
-    print("elapsed time: ", time.time()-start)
-
-    ## standard deviation and mean of d
-    print("mean: ", np.mean(d))
-    print("std: ", np.std(d))
-
-
-
-    print(I.PerspectiveAngle)
-    I.PerspectiveAngle = np.deg2rad(60)
-    print(I.MatlabIntrinsics)
-    print(I.OpenCVIntrinsics)
-    print(I.PerspectiveAngle)
+        self.width = data['width']
+        self.height = data['height']
+        self.pixel_size = data['pixel_size']
+        self.info = data['info']
+        return self
