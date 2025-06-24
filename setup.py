@@ -7,7 +7,8 @@ setup(
     description="A toolbox of camera, Plücker and transformation utilities",
     author="Rhys Evans & Seppe Sels",
     license="MIT",
-    packages=find_packages(where="."),
+    package_dir={"": "src"},
+    packages=find_packages(where="src"),
     install_requires=[
         "numpy",
         "matplotlib",
@@ -15,7 +16,7 @@ setup(
         "scipy",
         "open3d"
     ],
-    python_requires=">=3.7",
+    python_requires=">=3.10",
     classifiers=[
         "Programming Language :: Python :: 3",
         "Operating System :: OS Independent",
