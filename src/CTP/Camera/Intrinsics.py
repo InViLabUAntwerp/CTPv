@@ -164,39 +164,6 @@ class IntrinsicMatrix:
         self.width *= Scale
         self.height *= Scale
 
-    def generate_rays(self):
-        """
-        Generate 3D rays from each pixel of the camera sensor.
-        Returns:
-            Line: ray directions from camera origin.
-        """
-        scale = 2.0  # scaling factor for visualization
-        x_vals, y_vals = np.meshgrid(np.arange(self.width), np.arange(self.height))
-
-        if self.RadialDistortion.k1 == 0:
-            x_vals = (x_vals - self.cx) / self.fx * scale
-            y_vals = (y_vals - self.cy) / self.fy * scale
-            z_vals = np.ones_like(x_vals) * scale
-        else:
-            x_norm = (x_vals - self.cx) / self.fx
-            y_norm = (y_vals - self.cy) / self.fy
-            r2 = x_norm ** 2 + y_norm ** 2
-            radial_factor = 1 + self.RadialDistortion.k1 * r2 + self.RadialDistortion.k2 * r2 ** 2 + self.RadialDistortion.k3 * r2 ** 3
-            x_vals = x_norm * radial_factor * scale
-            y_vals = y_norm * radial_factor * scale
-            z_vals = np.ones_like(x_vals) * scale
-
-        Ps = np.stack([x_vals, y_vals, z_vals], axis=-1)
-        Pf = np.zeros_like(Ps)
-        Pf[..., 2] = 0  # Sensor plane
-
-        directions = Ps - Pf
-        rays = Line()
-        rays.Ps = Pf.reshape(-1, 3)
-        rays.V = directions.reshape(-1, 3)
-
-        return rays
-
     def save_intrinsics_to_json(self, filename):
         """Serialize camera intrinsics to a JSON file."""
         import json
