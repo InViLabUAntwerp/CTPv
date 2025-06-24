@@ -3,7 +3,7 @@ requires = ["setuptools>=74.1", "wheel", "numpy", "matplotlib", "scipy", "scikit
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "core_toolbox_python"
+name = "CTP"
 version = "0.1.0"
 description = "A toolbox of camera, Plücker, and transformation utilities"
 readme = "README.md"

@@ -34,7 +34,7 @@ jobs:
       - name: Upload wheel artifact (${ { matrix.python-version } })
         uses: actions/upload-artifact@v4
         with:
-          name: core-toolbox-wheel-${{ matrix.python-version }}
+          name: CTP-wheel-${{ matrix.python-version }}
           path: dist/*.whl
 
 

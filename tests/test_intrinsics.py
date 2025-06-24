@@ -1,8 +1,8 @@
 import numpy as np
 import copy
-from src.core_toolbox.Camera.Intrinsics import IntrinsicMatrix
-from src.core_toolbox.Transformation.TransformationMatrix import TransformationMatrix
-from src.core_toolbox.Plucker.Line import intersection_between_2_lines
+from src.CTP.Camera.Intrinsics import IntrinsicMatrix
+from src.CTP.Transformation.TransformationMatrix import TransformationMatrix
+from src.CTP.Plucker.Line import intersection_between_2_lines
 
 if __name__ == "__main__":
     I = IntrinsicMatrix()

@@ -1,4 +1,4 @@
-from src.core_toolbox.Plucker.Line import Line
+from src.CTP.Plucker.Line import Line
 import numpy as np
 
 if __name__ == '__main__':
