@@ -34,18 +34,41 @@ jobs:
       - name: Upload wheel artifact (${ { matrix.python-version } })
         uses: actions/upload-artifact@v4
         with:
-          name: CTP-wheel-${{ matrix.python-version }}
+          name: CTPv-wheel-${{ matrix.python-version }}
           path: dist/*.whl
 
-
   publish:
+    name: Publish to GitHub Release & PyPI
     needs: build-wheels
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
+
+    environment:
+      name: pypi
+      url: https://pypi.org/project/CTPv
+    permissions:
+      contents: write
+      id-token: write
+
     steps:
-      - uses: actions/download-artifact@v4
-      - uses: softprops/action-gh-release@v1
+      - name: Download all wheels
+        uses: actions/download-artifact@v4
         with:
-          files: '**/*.whl'
+          path: downloaded-artifacts
+
+      - name: Find and move distribution files to 'dist' directory
+        run: |
+            mkdir dist
+            find downloaded-artifacts -name "*.whl" -exec mv {} dist/ \;
+
+      - name: Create / Update GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: 'dist/*.whl'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish to PyPI via trusted publisher
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: ''

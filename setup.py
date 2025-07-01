@@ -2,7 +2,7 @@
 from setuptools import setup, find_packages
 
 setup(
-    name="CTP",
+    name="CTPv",
     version="0.1.0",
     description="A toolbox of camera, Plücker and transformation utilities",
     author="Rhys Evans & Seppe Sels",

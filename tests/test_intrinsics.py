@@ -1,8 +1,8 @@
 import numpy as np
 import copy
-from src.CTP.Camera.Intrinsics import IntrinsicMatrix
-from src.CTP.Transformation.TransformationMatrix import TransformationMatrix
-from src.CTP.Plucker.Line import intersection_between_2_lines
+from src.CTPv.Camera.Intrinsics import IntrinsicMatrix
+from src.CTPv.Transformation.TransformationMatrix import TransformationMatrix
+from src.CTPv.Plucker.Line import intersection_between_2_lines
 
 if __name__ == "__main__":
     I = IntrinsicMatrix()
