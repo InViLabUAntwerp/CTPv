@@ -1,6 +1,9 @@
 # setup.py
 from setuptools import setup, find_packages
 
+wx_dep = "wxPython>=4.1.1 ; sys_platform!='linux'"
+
+
 setup(
     name="CTPv",
     version="0.2.0",
@@ -16,7 +19,8 @@ setup(
         "scipy",
         "open3d",
         "plyfile",
-        "vispy"
+        "vispy",
+        wx_dep
     ],
     python_requires=">=3.10",
     classifiers=[
