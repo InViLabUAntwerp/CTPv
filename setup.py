@@ -16,8 +16,7 @@ setup(
         "scipy",
         "open3d",
         "plyfile",
-        "vispy",
-        "wxPython"
+        "vispy"
     ],
     python_requires=">=3.10",
     classifiers=[

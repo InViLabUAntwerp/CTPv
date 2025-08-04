@@ -9,6 +9,12 @@ A lightweight Python toolbox providing utilities for camera intrinsics, Plücker
 * **ICP.ICP_wx**: A minimalistic UI for visualising two point clouds in and selecting points to support the initial alignment, either FastICP or ICP will be referenced afterwards to perfect the alignment. An Open3D plot is used to highlight the alignment quality.
 
 
+⚠️ On Linux, wxPython may require a distribution-specific wheel. If installation fails, run:
+
+pip install -U -f https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-20.04 wxPython
+
+Or let the package auto-repair on first import. 
+
 ---
 
 ## Table of Contents

@@ -15,8 +15,7 @@ dependencies = [
   "scikit-learn",
   "open3d",
   "plyfile",
-  "vispy",
-  "wxPython"
+  "vispy"
 ]
 authors = [
   { name="Rhys Evans & Seppe Sels" , email = "rhys.evans@uantwerpen.be" },
