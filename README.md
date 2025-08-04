@@ -4,6 +4,10 @@ A lightweight Python toolbox providing utilities for camera intrinsics, Plücker
 * **Camera.Intrinsics**: Classes for intrinsic camera matrices (Matlab/OpenCV conventions), radial distortion, ray generation, and JSON serialization.
 * **Plucker.Line**: A `Line` class to represent 3D lines (start/end points or Plücker coordinates), intersection computations, line fitting, and basic plotting utilities.
 * **Transformation.TransformationMatrix**: A 4×4 rigid‐body transformation class with support for Euler angles (radians/degrees), quaternions, Bundler‐format I/O, JSON serialization, inversion, chaining, and plotting (matplotlib/Open3D).
+* **ICP.FastICP**: A method that tries to align two point clouds by randomly sampling both point clouds and performing ICP.
+* **ICP.ICP**: A method that tries to align two point clouds by using ICP on their full versions.
+* **ICP.ICP_wx**: A minimalistic UI for visualising two point clouds in and selecting points to support the initial alignment, either FastICP or ICP will be referenced afterwards to perfect the alignment. An Open3D plot is used to highlight the alignment quality.
+
 
 ---
 
@@ -17,6 +21,9 @@ A lightweight Python toolbox providing utilities for camera intrinsics, Plücker
    * [Camera.Intrinsics](#cameraintrinsics)
    * [Plucker.Line](#pluckerline)
    * [Transformation.TransformationMatrix](#transformationtransformationmatrix)
+   * [ICP.FastICP](#fasticp)
+   * [ICP.ICP](#icp)
+   * [ICP.ICP_wx](#icpwx)
 5. [Usage Examples](#usage-examples)
 6. [Development & Contributing](#development--contributing)
 7. [License](#license)
@@ -73,8 +80,8 @@ A lightweight Python toolbox providing utilities for camera intrinsics, Plücker
 1. **Clone the repository**
 
    ```bash
-   git clone https://github.com/yourusername/core_toolbox_python.git
-   cd core_toolbox_python
+   git clone https://github.com/yourusername/CTPv.git
+   cd CTPv
    ```
 
 2. **Build a wheel (PEP 517)**
@@ -90,7 +97,7 @@ A lightweight Python toolbox providing utilities for camera intrinsics, Plücker
 3. **Install from the local wheel**
 
    ```bash
-   pip install dist/core_toolbox_python-0.1.0-py3-none-any.whl
+   pip install dist/CTPv-0.1.0-py3-none-any.whl
    ```
 
 4. **Or install in editable/development mode**
@@ -107,7 +114,7 @@ A lightweight Python toolbox providing utilities for camera intrinsics, Plücker
 
 ### Camera.Intrinsics
 
-**File**: `core_toolbox_python/Camera/Intrinsics.py`
+**File**: `CTPv/Camera/Intrinsics.py`
 
 * **Class `RadialDistortion`**
 
@@ -160,7 +167,7 @@ A lightweight Python toolbox providing utilities for camera intrinsics, Plücker
 
 ### Plucker.Line
 
-**File**: `core_toolbox_python/Plucker/Line.py`
+**File**: `CTPv/Plucker/Line.py`
 
 * **Function `intersection_between_2_lines(L1, L2)`**
 
@@ -225,7 +232,7 @@ A lightweight Python toolbox providing utilities for camera intrinsics, Plücker
 
 ### Transformation.TransformationMatrix
 
-**File**: `core_toolbox_python/Transformation/TransformationMatrix.py`
+**File**: `CTPv/Transformation/TransformationMatrix.py`
 
 * **Class `TransformationMatrix`**
 
@@ -277,8 +284,238 @@ A lightweight Python toolbox providing utilities for camera intrinsics, Plücker
         T_combined = T1 @ T2
         print("Combined:\n", T_combined)
     ```
+    
+---
+
+### ICP.FastICP
+
+**File**: `CTPv/ICP/FastICP.py`
+
+* **Class `FastICPAligner`**
+
+  * Performs multi-scale, fast point cloud registration using **point-to-plane ICP** in Open3D.
+
+  * Designed for large point clouds and coarse-to-fine alignment pipelines.
+
+  * **Attributes**:
+
+    * `.source_points`: `(N, 3)` NumPy array of source (to transform).
+    * `.target_points`: `(M, 3)` NumPy array of target (fixed).
+    * `.normal_estimation_radius`: `None` Radius for normal estimation. If None, it's auto-calculated. (float, optional)
+
+  * **Methods**:
+    * `.align(threshold=5.0, scales=None, manual_pre_alignment=False)`
+
+      Performs fast, multi-scale ICP. Updates `.H`, `.rmse`, `.T_mag`.
+
+      * `threshold`: Distance threshold (in same units as point clouds).
+      * `scales`: List of `(voxel_size, max_iter)` tuples for coarse-to-fine ICP (default: 3-level pyramid).
+      * `manual_pre_alignment`: If `True`, allows user to pick 3 manual correspondences in a GUI before starting.
+
+      **Returns**: 4×4 `numpy.ndarray` — the final transformation matrix.
+
+    * `.visualize_before_alignment()`
+
+      Shows source and target point clouds **before** ICP (colored red and blue).
+
+    * `.visualize_after_alignment()`
+
+      Shows aligned source + target after `.align()` (colored green and blue).
+
+    * `.print_results()`
+
+      Logs `.H`, RMSE, translation magnitude, and convergence status to the console.
+
+  * **Example**:
+    ```python
+    from CTPv.ICP.FastICP import FastICPAligner
+    
+    # Load or define source/target point clouds
+    aligner = FastICPAligner(source_points, target_points)
+    
+    # Run fast multi-scale alignment
+    H = aligner.align(
+        threshold=5.0,
+        scales=[(0.1, 40), (0.25, 25), (1.0, 15)]
+    )
+    
+    # Visualize results
+    aligner.visualize_after_alignment()
+    
+    # Print summary
+    aligner.print_results()
+    ```
+---
+
+### ICP.ICP
+
+**File**: `CTPv/ICP/ICP.py`
+
+* **Class `ICPAligner`**
+
+  Performs point-to-point ICP alignment between two 3D point clouds using Open3D, with optional manual initialization via a point-picking GUI.
+
+  * **Constructor**:
+
+    ```python
+    ICPAligner(source_points: np.ndarray, target_points: np.ndarray)
+    ```
+
+    * `source_points`: `(N, 3)` array of source 3D points.
+    * `target_points`: `(M, 3)` array of target 3D points.
+
+  * **Attributes**:
+
+    * `.source_points`: original `(N, 3)` source point array.
+    * `.target_points`: original `(M, 3)` target point array.
+    * `.source_pcd`: Open3D `PointCloud` for source (colored red).
+    * `.target_pcd`: Open3D `PointCloud` for target (colored blue).
+    * `.transformation`: `TransformationMatrix` representing the final transform.
+    * `.reg_p2p`: Open3D `RegistrationResult` from the last ICP call.
+    * `.inlier_rmse`: RMSE value of inlier correspondences.
+
+  * **Methods**:
+
+    * `.align(threshold=10, max_iteration=2000, manual_pre_alignment=False)`:
+
+      Runs ICP registration. If `manual_pre_alignment=True`, opens a GUI for selecting corresponding points before refinement.
+
+      Returns: a `TransformationMatrix` object representing the alignment transform.
+
+    * `.run_manual_pre_alignment()`:
+
+      Launches a two-stage GUI for manually selecting at least 4 corresponding points on the source and target point clouds. Returns a `4×4` initial alignment matrix.
+
+    * `.visualize_before_alignment()`:
+
+      Opens a viewer showing the source (red) and target (blue) clouds before alignment.
+
+    * `.visualize_after_alignment()`:
+
+      Displays the target (blue) and the transformed source (green) after ICP alignment.
+
+    * `.print_results()`:
+
+      Logs the final transformation's translation vector, Euler angles (degrees), RMSE, and Euclidean distance of the translation.
+
+    * `.load_ply(filepath)` (static method):
+
+      Loads a PLY file into a `(N,3)` NumPy array using `plyfile`.
+
+    * `._create_pcd_from_points(points, color)` (static method):
+
+      Creates and colors an Open3D point cloud from a `(N,3)` array.
+
+  * **Dependencies**:
+
+    Requires `open3d`, `plyfile`, `numpy`, and `TransformationMatrix`.
+
+    ```bash
+    pip install open3d plyfile numpy
+    ```
+
+  * **Notes**:
+
+    * If using the GUI for manual alignment, hold **Shift + Left Click** to pick points, and press **Q** to finish.
+    * Works on Linux, macOS, and Windows with GUI support.
+    * Designed to be robust across Open3D versions by falling back to `VisualizerWithEditing`.
+
+  * **Example** (usage outline):
+
+    ```python
+    from CTPv.ICP.ICP import ICPAligner
+
+    source = ICPAligner.load_ply(\"source.ply\")
+    target = ICPAligner.load_ply(\"target.ply\")
+
+    icp = ICPAligner(source, target)
+    icp.visualize_before_alignment()
+    T = icp.align(threshold=5.0, max_iteration=1000, manual_pre_alignment=True)
+    icp.print_results()
+    icp.visualize_after_alignment()
+    ```
+---
+
+### ICP.ICP_wx
+
+**File**: `CTPv/ICP/ICP_wx.py`
+
+* **Class `MainFrame(wx.Frame)`**
+  A wxPython GUI interface to manually select correspondences between a *source* and *target* point cloud using 2D projection views.
 
 ---
+
+#### 📋 **Overview**
+
+This module provides a basic interactive GUI built using `wxPython` that allows users to select corresponding 2D points from source and target point clouds rendered in orthographic projection. These selected points are then used for computing a rigid transformation using least-squares alignment.
+
+---
+
+#### 📦 **Dependencies**
+
+* `wxPython` for GUI rendering.
+* `Open3D` for 3D point cloud visualization.
+* `matplotlib` for 2D projection views.
+* `NumPy` and `logging`.
+
+---
+
+#### 🧱 **Class: `MainFrame(wx.Frame)`**
+
+A GUI frame with two image panels: one for the source point cloud and one for the target point cloud.
+
+* **Constructor Arguments**:
+
+  * `source_points (np.ndarray)`: Nx3 array of source points.
+  * `target_points (np.ndarray)`: Nx3 array of target points.
+  * `num_points_to_select (int)`: Number of corresponding points to select (default is 4).
+
+* **UI Components**:
+
+  * Two canvas panels rendered using `matplotlib` for source and target.
+  * Reset and Confirm buttons.
+  * Mouse click handlers to collect 2D point selections.
+
+* **Workflow**:
+
+  1. Projects both 3D point clouds onto a 2D orthographic plane (top-down).
+  2. User clicks to select corresponding points in both panels.
+  3. After confirming, the selected 2D points are projected back to 3D using nearest neighbor search.
+  4. Extracted corresponding 3D points are stored in:
+
+     * `self.result_source_points`
+     * `self.result_target_points`
+
+* **Notable Methods**:
+
+  * `_draw_projection(points, ax, title)`: Projects and renders 2D view of 3D point cloud.
+  * `_on_click_source / _on_click_target(event)`: Mouse click handlers.
+  * `_reset_selection(event)`: Clears all selected points.
+  * `_confirm_selection(event)`: Finalizes point selection, closes GUI.
+  * `_project_back_to_3d(p2D, cloud3D)`: Finds nearest 3D point to a selected 2D location.
+
+* **Behavior Upon `app.MainLoop()` Exit**:
+
+  * 3D point arrays are stored as:
+
+    * `frame.result_source_points` → shape (N, 3)
+    * `frame.result_target_points` → shape (N, 3)
+
+---
+
+#### 🧪 **Example Usage** (see `Runner.py`)
+
+```python
+app = wx.App(False)
+frame = MainFrame(target_points=target_pts, source_points=source_pts, num_points_to_select=4)
+app.MainLoop()
+
+# After closing window
+src_pts = frame.result_source_points
+tgt_pts = frame.result_target_points
+```
+---
+
 
 ## Usage Examples
 
@@ -287,7 +524,7 @@ Below are some minimal snippets illustrating how to import and use the package o
 ### 1. Reading/Writing Intrinsics
 
 ```python
-from core_toolbox_python.Camera.Intrinsics import IntrinsicMatrix, RadialDistortion
+from CTPv.Camera.Intrinsics import IntrinsicMatrix, RadialDistortion
 
 # Create an intrinsic matrix
 I = IntrinsicMatrix()
@@ -315,8 +552,8 @@ print("Loaded fx, fy:", I2.fx, I2.fy)
 ### 2. Generating Rays & Line Intersections
 
 ```python
-from core_toolbox_python.Camera.Intrinsics import IntrinsicMatrix
-from core_toolbox_python.Plucker.Line import intersection_between_2_lines
+from CTPv.Camera.Intrinsics import IntrinsicMatrix
+from CTPv.Plucker.Line import intersection_between_2_lines
 
 # Suppose we have two camera poses, project rays, and compute their closest‐point intersections
 
@@ -347,7 +584,7 @@ print("Mean distance between ray pairs:", distances.mean())
 ### 3. Creating & Transforming 3D Geometry
 
 ```python
-from core_toolbox_python.Transformation.TransformationMatrix import TransformationMatrix
+from CTPv.Transformation.TransformationMatrix import TransformationMatrix
 import numpy as np
 
 # Define a transformation: translate by [1,2,3], rotate 45° about Z
@@ -378,7 +615,7 @@ T_comb = T @ T2  # (applies T first, then T2)
 
 ```python
 import matplotlib.pyplot as plt
-from core_toolbox_python.Plucker.Line import Line
+from CTPv.Plucker.Line import Line
 
 # Plotting a single ray
 L = Line()
@@ -387,7 +624,7 @@ L.Pe = np.array([[1, 1, 1]])
 L.PlotLine(colori='r')
 
 # Plot a coordinate frame
-from core_toolbox_python.Transformation.TransformationMatrix import TransformationMatrix
+from CTPv.Transformation.TransformationMatrix import TransformationMatrix
 T = TransformationMatrix()
 T.T = [0, 0, 0]
 T.angles_degree = [30, 45, 60]
@@ -401,8 +638,8 @@ plt.show()
 
 1. **Clone & install in “editable” mode**  
    ```bash
-   git clone https://github.com/yourusername/core_toolbox_python.git
-   cd core_toolbox_python
+   git clone https://github.com/yourusername/CTPv.git
+   cd CTPv
    pip install -e .
     ```
 

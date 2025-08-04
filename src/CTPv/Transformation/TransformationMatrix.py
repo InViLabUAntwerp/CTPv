@@ -10,15 +10,9 @@ from scipy.spatial.transform import Rotation as R
 # from mpl_toolkits.mplot3d import proj3d
 
 class TransformationMatrix:
-    """
-    A class to represent and manipulate a 4x4 transformation matrix.
-    This class provides methods to handle transformations including translation, rotation, and their combinations.
-    It also supports various ways to set and get the transformation properties such as Euler angles and quaternions.
-    """
     def __init__(self):
         """
         Initialize the transformation matrix as a 4x4 identity matrix.
-        Additional attributes include info and units for metadata and unit specification.
         """
         self.H = np.eye(4)
         self.info = ["default1", "default2"]
@@ -26,18 +20,12 @@ class TransformationMatrix:
 
     @property
     def T(self):
-        """Get the translation vector from the transformation matrix."""
+        """Get the translation vector."""
         return self.H[:3, 3]
 
     @T.setter
     def T(self, t):
-        """
-        Set the translation vector of the transformation matrix.
-
-        Parameters:
-        t : array-like
-            The translation vector with three elements.
-        """
+        """Set the translation vector."""
         t = np.asarray(t).flatten()
         if t.shape[0] == 3:
             self.H[:3, 3] = t
@@ -46,18 +34,12 @@ class TransformationMatrix:
 
     @property
     def R(self):
-        """Get the rotation matrix from the transformation matrix."""
+        """Get the rotation matrix."""
         return self.H[:3, :3]
 
     @R.setter
     def R(self, r):
-        """
-        Set the rotation matrix of the transformation matrix.
-
-        Parameters:
-        r : array-like
-            The 3x3 rotation matrix.
-        """
+        """Set the rotation matrix."""
         r = np.asarray(r)
         if r.shape == (3, 3):
             self.H[:3, :3] = r
@@ -66,63 +48,39 @@ class TransformationMatrix:
 
     @property
     def angles(self):
-        """Get Euler angles in radians (XYZ convention) from the rotation matrix."""
+        """Get Euler angles in radians (XYZ convention)."""
         return R.from_matrix(self.R).as_euler('xyz')
 
     @angles.setter
     def angles(self, angles):
-        """
-        Set the rotation matrix using Euler angles (in radians) with XYZ convention.
-
-        Parameters:
-        angles : array-like
-            The Euler angles in radians.
-        """
+        """Set Euler angles (in radians) using XYZ convention."""
         self.R = R.from_euler('xyz', angles).as_matrix()
 
     @property
     def angles_degree(self):
-        """Get Euler angles in degrees from the rotation matrix."""
+        """Get Euler angles in degrees."""
         return np.degrees(self.angles)
 
     @angles_degree.setter
     def angles_degree(self, angles):
-        """
-        Set the rotation matrix using Euler angles in degrees.
-
-        Parameters:
-        angles : array-like
-            The Euler angles in degrees.
-        """
+        """Set Euler angles in degrees."""
         self.angles = np.radians(angles)
 
     @property
     def quaternion(self):
-        """Get the quaternion representation of the rotation matrix."""
+        """Get the quaternion representation of the rotation."""
         return R.from_matrix(self.R).as_quat()
 
     @quaternion.setter
     def quaternion(self, quat):
-        """
-        Set the rotation matrix using a quaternion.
-
-        Parameters:
-        quat : array-like
-            The quaternion representing the rotation.
-        """
+        """Set the rotation matrix using a quaternion."""
         self.R = R.from_quat(quat).as_matrix()
 
     def transform(self, points):
         """
         Apply the transformation to a set of 3D points.
-
-        Parameters:
-        points : array-like
-            Nx3 array of points to transform.
-
-        Returns:
-        numpy.ndarray
-            Transformed Nx3 array of points.
+        :param points: Nx3 array of points.
+        :return: Transformed Nx3 array.
         """
         points = np.asarray(points)
         if points.ndim == 1 and points.shape[0] == 3:
@@ -139,11 +97,8 @@ class TransformationMatrix:
         return transformed_points[:, :3]  # Remove the homogeneous coordinate
 
     def invert(self):
-        """
-        Invert the transformation matrix.
-        This method computes the inverse of the transformation matrix and updates the matrix and its info.
-        """
-        H_inv = np.linalg.inv(self.H)
+        """Invert the transformation matrix."""
+        H_inv= np.linalg.inv(self.H)
         self.info = self.info[::-1]
         self.H = H_inv
 
@@ -205,10 +160,7 @@ class TransformationMatrix:
     def load_bundler_file(self, filename):
         """
         Load the transformation matrix from a Bundler file, ignoring the first 3 lines.
-
-        Parameters:
-        filename : str
-            Path to the input Bundler file.
+        :param filename: Path to the input file.
         """
         with open(filename, 'r') as f:
             lines = f.readlines()[3:]  # Ignore the first 3 lines
@@ -225,11 +177,8 @@ class TransformationMatrix:
 
     def plot(self, scale=1.0):
         """
-        Plot the transformation as a coordinate frame using matplotlib.
-
-        Parameters:
-        scale : float, optional
-            The scale of the coordinate frame axes.
+        Plot the transformation as a coordinate frame.
+        Requires matplotlib.
         """
         fig = plt.figure()
         ax = fig.add_subplot(111, projection="3d")
@@ -273,12 +222,10 @@ class TransformationMatrix:
     def plot_open3d(self, scale=1.0):
         """
         Plot the transformation as a coordinate frame using Open3D.
-
-        Parameters:
-        scale : float, optional
-            The scale of the coordinate frame axes.
+        Requires open3d.
         """
         # Create the transformation coordinate frame
+        import open3d as o3d
         mesh_frame = o3d.geometry.TriangleMesh.create_coordinate_frame(size=scale, origin=self.T)
         R = self.R
         mesh_frame.rotate(R, center=self.T)
@@ -296,11 +243,7 @@ class TransformationMatrix:
 
     def copy(self):
         """
-        Return a copy of the current TransformationMatrix instance.
-
-        Returns:
-        TransformationMatrix
-            A new instance of TransformationMatrix with the same transformation matrix and metadata.
+        Return a copy of the current instance.
         """
         new_instance = TransformationMatrix()
         new_instance.H = np.copy(self.H)
@@ -309,13 +252,6 @@ class TransformationMatrix:
         return new_instance
 
     def load_from_json(self, filename):
-        """
-        Load the transformation matrix and metadata from a JSON file.
-
-        Parameters:
-        filename : str
-            Path to the JSON file.
-        """
         import json
         with open(filename, 'r') as f:
             data = json.load(f)
@@ -325,13 +261,6 @@ class TransformationMatrix:
         self.units = data['units']
 
     def save_to_json(self, filename):
-        """
-        Save the transformation matrix and metadata to a JSON file.
-
-        Parameters:
-        filename : str
-            Path to the output JSON file.
-        """
         import json
         #make sure the directory exists
         directory = os.path.dirname(filename)
@@ -348,34 +277,78 @@ class TransformationMatrix:
     def __matmul__(self, other):
         """
         Overload the @ operator for transformation chaining.
-
-        Parameters:
-        other : TransformationMatrix
-            Another TransformationMatrix to multiply with.
-
-        Returns:
-        TransformationMatrix
-            The resulting TransformationMatrix from the multiplication.
         """
         if not isinstance(other, TransformationMatrix):
             raise TypeError("Can only multiply with another TransformationMatrix")
 
         result = TransformationMatrix()
         result.H = self.H @ other.H
-
-        if not self.info or not other.info:
-            raise ValueError("Info lists should not be empty")
-
-        info = [self.info[0], other.info[-1]]
+        info = [self.info[0], other.info[-1]] # todo, check this
         result.info = info
         return result
 
-    def __repr__(self):
+    @staticmethod
+    def calculate_rigid_transform(A, B):
         """
-        Return a string representation of the TransformationMatrix.
+        Calculates the optimal rigid transformation (rotation and translation)
+        that aligns point set A to point set B using SVD.
+        Requires at least 3 corresponding points.
+
+        Args:
+            A (np.ndarray): An Nx3 array of points in the source coordinate system.
+            B (np.ndarray): An Nx3 array of corresponding points in the target coordinate system.
 
         Returns:
-        str
-            A string representation of the transformation matrix.
+            TransformationMatrix: An object representing the transformation that maps A to B.
+
+        Raises:
+            ValueError: If the point sets do not have the same shape, or if fewer
+                        than 3 points are provided.
         """
+        A = np.asarray(A)
+        B = np.asarray(B)
+
+        if A.shape != B.shape:
+            raise ValueError("Point sets A and B must have the same shape.")
+        if A.shape[0] < 3:
+            raise ValueError("At least 3 points are required to calculate the transformation.")
+        if A.shape[1] != 3:
+            raise ValueError("Points must be 3D.")
+
+        # 1. Find centroids
+        centroid_A = np.mean(A, axis=0)
+        centroid_B = np.mean(B, axis=0)
+
+        # 2. Center the points (remove translation component)
+        A_centered = A - centroid_A
+        B_centered = B - centroid_B
+
+        # 3. Calculate the covariance matrix H
+        H = A_centered.T @ B_centered
+
+        # 4. Perform SVD
+        U, S, Vt = np.linalg.svd(H)
+
+        # 5. Calculate rotation matrix R
+        R_calc = Vt.T @ U.T
+
+        # 6. Handle the special case of a reflection (det(R) = -1)
+        # This can happen if the data is noisy or degenerate.
+        if np.linalg.det(R_calc) < 0:
+            # Flip the sign of the last column of V (or U)
+            Vt_corrected = Vt.copy()
+            Vt_corrected[2, :] *= -1
+            R_calc = Vt_corrected.T @ U.T
+
+        # 7. Calculate the translation vector t
+        t_calc = centroid_B - R_calc @ centroid_A
+
+        # 8. Create and return the TransformationMatrix object
+        transform = TransformationMatrix()
+        transform.R = R_calc
+        transform.T = t_calc
+        return transform
+
+
+    def __repr__(self):
         return f"TransformationMatrix(\n{self.H})"
