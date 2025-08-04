@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "CTPv"
-version = "0.2.0"
+version = "0.2.1"
 description = "A toolbox of camera, Plücker, and transformation utilities"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -16,7 +16,7 @@ dependencies = [
   "open3d",
   "plyfile",
   "vispy",
-  "wxPython>=4.1.1; sys_platform!='linux'"
+  "wxPython>=4.2.3; sys_platform!='linux'"
 ]
 authors = [
   { name="Rhys Evans & Seppe Sels" , email = "rhys.evans@uantwerpen.be" },

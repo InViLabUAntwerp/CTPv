@@ -1,12 +1,12 @@
 # setup.py
 from setuptools import setup, find_packages
 
-wx_dep = "wxPython>=4.1.1 ; sys_platform!='linux'"
+wx_dep = "wxPython>=4.2.3 ; sys_platform!='linux'"
 
 
 setup(
     name="CTPv",
-    version="0.2.0",
+    version="0.2.1",
     description="A toolbox of camera, Plücker and transformation utilities",
     author="Rhys Evans & Seppe Sels",
     license="MIT",
