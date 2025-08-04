@@ -29,7 +29,7 @@ jobs:
         run: python -m pip install --upgrade build
 
       - name: Install wxPython based on OS
-        run: python install_wxpython.py
+        run: python .github/workflows/install_wxpython.py
 
       - name: Build wheel
         run: python -m build --wheel --outdir dist
