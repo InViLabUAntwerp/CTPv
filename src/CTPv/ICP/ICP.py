@@ -142,7 +142,7 @@ class ICPAligner:
 
         return transformation
 
-    def align(self, threshold=10, max_iteration=2000, manual_pre_alignment=False):
+    def align(self, threshold=10, fitness=0.5, max_iteration=2000, manual_pre_alignment=False):
         """
         Runs the ICP algorithm to align the source point cloud to the target.
 
@@ -168,7 +168,7 @@ class ICPAligner:
         self.reg_p2p = o3d.pipelines.registration.registration_icp(
             self.source_pcd, self.target_pcd, threshold, trans_init,
             o3d.pipelines.registration.TransformationEstimationPointToPoint(),
-            o3d.pipelines.registration.ICPConvergenceCriteria(max_iteration=max_iteration)
+            o3d.pipelines.registration.ICPConvergenceCriteria(relative_fitness=fitness, max_iteration=max_iteration)
         )
         transformation = self.reg_p2p.transformation
         T2 = TransformationMatrix()

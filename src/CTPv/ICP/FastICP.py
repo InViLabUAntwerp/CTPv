@@ -41,7 +41,7 @@ class FastICPAligner(ICPAligner):
         self.target_pcd.estimate_normals(
             search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=normal_estimation_radius, max_nn=30))
 
-    def align(self, threshold=0.1, scales=None):
+    def align(self, fitness=0.5, threshold=0.1, scales=None):
         """
         Overrides the parent align method. Runs a multi-scale ICP for high speed.
         It iteratively refines the alignment from very coarse to full resolution.
@@ -85,7 +85,7 @@ class FastICPAligner(ICPAligner):
             self.reg_p2p = o3d.pipelines.registration.registration_icp(
                 source_down, target_down, current_threshold, trans_init,
                 estimation_method,
-                o3d.pipelines.registration.ICPConvergenceCriteria(max_iteration=max_iter)
+                o3d.pipelines.registration.ICPConvergenceCriteria(relative_fitness = fitness, max_iteration=max_iter)
             )
 
             # Use the result of this stage as the initial guess for the next one
