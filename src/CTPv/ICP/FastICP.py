@@ -3,7 +3,7 @@ import logging
 import numpy as np
 import open3d as o3d
 
-from ICP import *
+from .ICP import *
 from ..Transformation.TransformationMatrix import TransformationMatrix
 
 
