@@ -149,7 +149,6 @@ Or let the package auto-repair on first import.
     * `.CameraParams2Intrinsics(CameraParams)`: load intrinsics from an external camera‐parameters object (e.g. if you have a `CameraParams.IntrinsicMatrix` & `CameraParams.ImageSize`).
     * `.Intrinsics2CameraParams()`: return a dictionary `{IntrinsicMatrix: […], ImageSize: […], RadialDistortion: …}`.
     * `.ScaleIntrinsics(s)`: multiply `fx, fy, cx, cy, width, height` by scale ` s`.
-    * `.generate_rays() → Line`: produce a `Line` object where each row corresponds to a 3D ray originating from pixel centers; uses radial‐undistortion (if defined).
     * `.save_intrinsics_to_json(filename)`: write a JSON file containing OpenCV intrinsics, distortion, resolution, pixel size, and `info`.
     * `.load_intrinsics_from_json(filename)`: read JSON file and populate intrinsics, distortion, `width, height, pixel_size, info`.
 
@@ -164,9 +163,6 @@ Or let the package auto-repair on first import.
         I.cx, I.cy = 685, 492
         I.RadialDistortion.set_from_list([-0.5, 0.18, 0])
         I.save_intrinsics_to_json("test.json")
-        rays = I.generate_rays()  # Plücker‐line set
-        I2 = IntrinsicMatrix().load_intrinsics_from_json("test.json")
-        # … compute intersections, etc.
     ```
 
 ---
