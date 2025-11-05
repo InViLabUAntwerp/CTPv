@@ -6,7 +6,7 @@ wx_dep = "wxPython>=4.2.3 ; sys_platform!='linux'"
 
 setup(
     name="CTPv",
-    version="0.2.3-2",
+    version="0.2.3-3",
     description="A toolbox of camera, Plücker and transformation utilities",
     author="Rhys Evans & Seppe Sels",
     license="MIT",
