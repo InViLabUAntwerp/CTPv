@@ -17,10 +17,11 @@ dependencies = [
   "plyfile",
   "vispy",
 ]
-[project.optional-dependencies]
-gui = ["wxPython>=4.2.3; sys_platform!='linux'"]
+
 
 authors = [
   { name="Rhys Evans & Seppe Sels" , email = "rhys.evans@uantwerpen.be" },
 ]
 license = { text = "MIT" }
+[project.optional-dependencies]
+gui = ["wxPython>=4.2.3; sys_platform!='linux'"]
