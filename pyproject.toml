@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "CTPv"
-version = "0.2.3-5"
+version = "0.2.3-6"
 description = "A toolbox of camera, Plücker, and transformation utilities"
 readme = "README.md"
 requires-python = ">=3.10"
