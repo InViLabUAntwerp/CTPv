@@ -1,4 +1,26 @@
-import wx
+try:
+    import wx
+except ImportError:
+    # Ask the user for permission before installing
+    user_choice = input(
+        "To use the GUI features, 'wxPython' is required. Would you like to install it now? (y/n): ").strip().lower()
+
+    if user_choice in ['y', 'yes']:
+        print("Attempting to install wxPython. This might take a moment...")
+        from ..wx_helper import ensure_wxpython
+
+        if not ensure_wxpython():
+            raise RuntimeError("Failed to install wxPython automatically. Please install it manually.")
+
+        # Try importing again after successful installation
+        import wx
+
+        print("wxPython installed successfully!")
+    else:
+        # The user declined the installation
+        raise RuntimeError("GUI initialization aborted. wxPython is required to proceed.")
+
+
 import numpy as np
 from vispy import app
 
